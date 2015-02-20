@@ -15,23 +15,29 @@
 
 (defmacro defstruct (name-and-options &rest slots)
   (ematch name-and-options
-    ((or (list* name _)
-         (and (symbol) name))
+    ((list* name _)
      `(eval-when (:compile-toplevel :load-toplevel :execute)
         (cl:defstruct (,@name-and-options
-                       (:constructor ,name ,@(mapcar #'car (mapcar #'ensure-list slots))))
+                       (:constructor ,name ,(mapcar #'car (mapcar #'ensure-list slots))))
           ,@slots)
-        (defpattern ,name (&optional
-                           ,@(mapcar (lambda (slot)
-                                       (match slot
-                                         ((symbol) `(,slot '_))
-                                         ((list* slot _)
-                                          `(,slot '_))))
-                                     slots))
-          `(,name ,@(mapcar (lambda (slot)
-                              (match slot
-                                ((symbol) `(,slot '_))
-                                ((list* slot _)
-                                 `(,slot '_))))
-                            slots)))))))
+        ,(%defpattern name slots)))
+    ((and (symbol) name)
+     `(eval-when (:compile-toplevel :load-toplevel :execute)
+        (cl:defstruct (,name
+                       (:constructor ,name ,(mapcar #'car (mapcar #'ensure-list slots))))
+          ,@slots)
+        ,(%defpattern name slots)))))
 
+(defun %defpattern (name slots)
+  (let ((slots-optional-args
+         (mapcar (lambda (slot)
+                   (match slot
+                     ((or (symbol) (list* slot _)) `(,slot '_))))
+                 slots)))
+    `(defpattern ,name (&optional ,@slots-optional-args)
+       (list* ',name
+              ,@(mapcar (lambda (slot)
+                          (match slot
+                            ((or (symbol) (list* slot _))
+                             ``(,',slot ,,slot))))
+                        slots)))))
