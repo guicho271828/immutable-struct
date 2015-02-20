@@ -35,9 +35,9 @@
                      ((or (symbol) (list* slot _)) `(,slot '_))))
                  slots)))
     `(defpattern ,name (&optional ,@slots-optional-args)
-       (list* ',name
-              ,@(mapcar (lambda (slot)
-                          (match slot
-                            ((or (symbol) (list* slot _))
-                             ``(,',slot ,,slot))))
-                        slots)))))
+       (list ',name
+             ,@(mapcar (lambda (slot)
+                         (match slot
+                           ((or (symbol) (list* slot _))
+                            ``(,',slot ,,slot))))
+                       slots)))))
