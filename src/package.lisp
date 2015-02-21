@@ -6,9 +6,10 @@
 (in-package :cl-user)
 (defpackage optima-immutable-struct
   (:use :cl :optima :alexandria)
-  (:shadow :defstruct)
+  (:shadow :defstruct :ftype)
   (:export
-   #:defstruct))
+   :defstruct
+   :ftype))
 (in-package :optima-immutable-struct)
 
 ;; blah blah blah.
@@ -41,3 +42,8 @@
                            ((or (symbol) (list* slot _))
                             ``(,',slot ,,slot))))
                        slots)))))
+
+(defmacro ftype (name &rest types)
+  "abbreviation of (declaim (ftype (function (<types...>) <type>)
+<name>)). the last type is used for the return type."
+  `(declaim (cl:ftype (function ,(butlast types) ,(lastcar types)) ,name)))
