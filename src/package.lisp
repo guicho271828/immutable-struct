@@ -47,9 +47,9 @@
     `(defpattern ,name (&optional ,@slots-optional-args)
        (list 'structure ',(symbolicate name '-)
              ,@(mapcar (lambda (slot)
-                         (match slot
-                           ((or (symbol) (list* slot _))
-                            ``(,',slot ,,slot))))
+                         (match (ensure-list slot)
+                           ((list* slot _ (property :type type))
+                            ``(,',slot (and ,,slot (type ,',type))))))
                        slots)))))
 
 (defmacro ftype (name &rest types)
