@@ -34,7 +34,7 @@
        `(eval-when (:compile-toplevel :load-toplevel :execute)
           (cl:defstruct (,name
                          ,@options
-                         (:constructor ,name ,(mapcar #'car slots)))
+                         (:constructor ,name (&optional ,@(mapcar #'car slots))))
             ,@slots)
           ,(%defpattern name slots))))))
 
