@@ -1,7 +1,29 @@
 
-* Optima-Immutable-Struct 
+* OPTIMA-IMMUTABLE-STRUCT 
 
-** Usage
+Simple library that encourage the use of functional programming +
+pattern matching.
+
+It provides a wrapper for =defstruct= and a simple macro =ftype=. The symbols
+are different from =cl:defstruct= and =cl:ftype= so that it avoids error in sbcl.
+
+** macro defstruct (name-and-options &rest slots)
+
+A variation of defstruct, with read-only slots and automatically defined constructor.
+
++ The constructor name has the different convention compared to the default naming convention in cl.
+  It has (<name> &optional <slots...>) and has no keyword argument.
++ It adds read-only option in cl:defstruct to each slot definition.
++ It uses the noninterned symbols for the name of each slot, disallowing the use of slot-value.
++ It also defines a pattern matcher clause in exactly the same form as the constructor.
+
+** macro ftype (name &rest types)
+
+Abbreviation of =(declaim (ftype (function (<types...>) <type>) <name>))=.
+The last type is used for the return type.
+
+In a smart implementation like sbcl, using =ftype= declaration is preferred
+over =the= and =(declare (type ...))=.
 
 ** Dependencies
 
