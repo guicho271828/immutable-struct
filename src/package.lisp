@@ -15,19 +15,28 @@
 ;; blah blah blah.
 
 (defmacro defstruct (name-and-options &rest slots)
-  (ematch name-and-options
-    ((list* name _)
-     `(eval-when (:compile-toplevel :load-toplevel :execute)
-        (cl:defstruct (,@name-and-options
-                       (:constructor ,name ,(mapcar #'car (mapcar #'ensure-list slots))))
-          ,@slots)
-        ,(%defpattern name slots)))
-    ((and (symbol) name)
-     `(eval-when (:compile-toplevel :load-toplevel :execute)
-        (cl:defstruct (,name
-                       (:constructor ,name ,(mapcar #'car (mapcar #'ensure-list slots))))
-          ,@slots)
-        ,(%defpattern name slots)))))
+  "A variation of defstruct, with read-only slots and automatically defined constructor.
++ The constructor name has the different convention compared to the default naming convention in cl.
+  It has (<name> &optional <slots...>) and has no keyword argument.
++ It adds read-only option in cl:defstruct to each slot definition.
++ It uses the noninterned symbols for the name of each slot, disallowing the use of slot-value.
++ It also defines a pattern matcher clause in exactly the same form as the constructor.
+"
+  (let ((slots (mapcar (lambda (slot)
+                         (ematch slot
+                           ((list* (structure symbol (-name name)) initform options)
+                            (list* (make-symbol name) initform :read-only t options))
+                           ((structure symbol (-name name))
+                            (list (make-symbol name) nil :read-only t))))
+                       slots)))
+    (ematch (ensure-list name-and-options)
+      ((list* name options)
+       `(eval-when (:compile-toplevel :load-toplevel :execute)
+          (cl:defstruct (,name
+                         ,@options
+                         (:constructor ,name ,(mapcar #'car slots)))
+            ,@slots)
+          ,(%defpattern name slots))))))
 
 (defun %defpattern (name slots)
   (let ((slots-optional-args
@@ -36,7 +45,7 @@
                      ((or (symbol) (list* slot _)) `(,slot '_))))
                  slots)))
     `(defpattern ,name (&optional ,@slots-optional-args)
-       (list ',name
+       (list 'structure ',(symbolicate name '-)
              ,@(mapcar (lambda (slot)
                          (match slot
                            ((or (symbol) (list* slot _))
