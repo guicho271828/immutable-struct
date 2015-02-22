@@ -9,7 +9,8 @@
   (:shadow :defstruct :ftype)
   (:export
    :defstruct
-   :ftype))
+   :ftype
+   :id-mixin))
 (in-package :optima-immutable-struct)
 
 ;; blah blah blah.

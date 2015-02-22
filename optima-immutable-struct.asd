@@ -23,6 +23,7 @@
   :depends-on (:optima :alexandria)
   :components ((:module "src"
                 :components
-                ((:file "package"))))
+                ((:file "package")
+                 (:file "id"))))
   :description ""
   :in-order-to ((test-op (load-op optima-immutable-struct.test))))

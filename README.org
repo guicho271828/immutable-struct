@@ -28,6 +28,19 @@ Abbreviation of =(declaim (ftype (function (<types...>) <type>)
 In a smart implementation like sbcl, using =ftype= declaration is preferred
 over =the= and =(declare (type ...))=.
 
+** structue id-mixin
+
+It has an only slot named =id= and meant to be :include-ed into the
+structure. It has a fixnum value, and a random value is assigned to this
+slot on each instantiation.
+
+This is particularly important when using a hash table to avoid duplicated
+evaluation. The performance of the hash function affects the rate of hash
+conflict. However, SBCL yields the same sxhash value for the instances of the same
+class, and results in a bad hashing result.
+
+https://github.com/guicho271828/optima-bdd contains some usage.
+
 ** Dependencies
 
 This library is at least tested on implementation listed below:
