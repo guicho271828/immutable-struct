@@ -17,10 +17,13 @@ A variation of defstruct, with read-only slots and automatically defined constru
 + It uses the noninterned symbols for the name of each slot, disallowing the use of slot-value.
 + It also defines a pattern matcher clause in exactly the same form as the constructor.
 
-** macro ftype (name &rest types)
+** macro ftype (name-or-names &rest types)
 
-Abbreviation of =(declaim (ftype (function (<types...>) <type>) <name>))=.
-The last type is used for the return type.
+Abbreviation of =(declaim (ftype (function (<types...>) <type>)
+<name-or-names...>))=.
+
++ =name-or-names= can be a function name or a list of function names. =setf= functions are treated correctly.
++ The last element of =types= is used for the return type.
 
 In a smart implementation like sbcl, using =ftype= declaration is preferred
 over =the= and =(declare (type ...))=.

@@ -52,7 +52,10 @@
                             ``(,',slot (and ,,slot (type ,',type))))))
                        slots)))))
 
-(defmacro ftype (name &rest types)
+(defmacro ftype (name-or-names &rest types)
   "abbreviation of (declaim (ftype (function (<types...>) <type>)
 <name>)). the last type is used for the return type."
-  `(declaim (cl:ftype (function ,(butlast types) ,(lastcar types)) ,name)))
+  `(declaim (cl:ftype (function ,(butlast types) ,(lastcar types))
+                      ,@(match name-or-names
+                          ((list 'setf _) (list name-or-names))
+                          (_ (ensure-list name-or-names))))))
