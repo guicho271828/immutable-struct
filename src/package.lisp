@@ -15,7 +15,7 @@
 
 ;; blah blah blah.
 
-(defmacro defstruct (name-and-options &rest slots)
+(defmacro defstruct (name-and-options &optional documentation &rest slots)
   "A variation of defstruct, with read-only slots and automatically defined constructor.
 + The constructor name has the different convention compared to the default naming convention in cl.
   It has (<name> &optional <slots...>) and has no keyword argument.
@@ -23,6 +23,9 @@
 + It uses the noninterned symbols for the name of each slot, disallowing the use of slot-value.
 + It also defines a pattern matcher clause in exactly the same form as the constructor.
 "
+  (unless (stringp documentation)
+    (psetf documentation ""
+           slots (cons documentation slots)))
   (let ((slots (mapcar (lambda (slot)
                          (ematch slot
                            ((list* (structure symbol (-name name)) initform options)
@@ -36,6 +39,7 @@
           (cl:defstruct (,name
                          ,@options
                          (:constructor ,name (&optional ,@(mapcar #'car slots))))
+            ,documentation
             ,@slots)
           ,(%defpattern name slots))))))
 
