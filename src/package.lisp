@@ -41,16 +41,26 @@
 (defun %defpattern (name slots)
   (let ((slots-optional-args
          (mapcar (lambda (slot)
-                   (match slot
-                     ((or (symbol) (list* slot _)) `(,slot '_))))
+                   (ematch slot
+                     ((list* slot _) `(,slot '_))))
                  slots)))
     `(defpattern ,name (&optional ,@slots-optional-args)
        (list 'structure ',(symbolicate name '-)
              ,@(mapcar (lambda (slot)
-                         (match (ensure-list slot)
+                         (ematch (ensure-list slot)
                            ((list* slot _ (property :type type))
-                            ``(,',slot (and ,,slot (type ,',type))))))
+                            ``(,',slot (and ,,slot (type ,',type))))
+                           ((list* slot _) ;; see below
+                            ``(,',slot ,,slot))))
                        slots)))))
+
+#+nil
+(defstruct rb-node
+  (color :red :type symbol)
+  (left (leaf) :type rb-tree)
+  (label 0 :type real)
+  content ;; <--------  non-typed slot in the middle
+  (right (leaf) :type rb-tree))
 
 (defmacro ftype (name-or-names &rest types)
   "abbreviation of (declaim (ftype (function (<types...>) <type>)
