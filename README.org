@@ -4,10 +4,10 @@
 +Simple+ Library that encourage the use of functional programming +
 pattern matching.
 
-It provides a wrapper for =defstruct= and a simple macro =ftype=. The symbols
-are different from =cl:defstruct= and =cl:ftype= so that it avoids error in sbcl.
-
-*NEWS*: It also provides =typevar=, one naive way to define efficient algebraic data types.
++ =defstruct= --- provides truely nondestructive structure.
++ =typevar= --- naive way to define efficient algebraic data types
++ =ftype= --- shorthand expression of =declaim ftype=
++ =id-mixin= --- for a better hash function
 
 ** macro defstruct (name-and-options &rest slots)
 
@@ -18,30 +18,6 @@ A variation of defstruct, with read-only slots and automatically defined constru
 + It adds read-only option in cl:defstruct to each slot definition.
 + It uses the noninterned symbols for the name of each slot, disallowing the use of slot-value.
 + It also defines a pattern matcher clause in exactly the same form as the constructor.
-
-** macro ftype (name-or-names &rest types)
-
-Abbreviation of =(declaim (ftype (function (<types...>) <type>)
-<name-or-names...>))=.
-
-+ =name-or-names= can be a function name or a list of function names. =setf= functions are treated correctly.
-+ The last element of =types= is used for the return type.
-
-In a smart implementation like sbcl, using =ftype= declaration is preferred
-over =the= and =(declare (type ...))=.
-
-** structue id-mixin
-
-It has an only slot named =id= and meant to be :include-ed into the
-structure. It has a fixnum value, and a random value is assigned to this
-slot on each instantiation.
-
-This is particularly important when using a hash table to avoid duplicated
-evaluation. The performance of the hash function affects the rate of hash
-conflict. However, SBCL yields the same sxhash value for the instances of the same
-class, and results in a bad hashing result.
-
-https://github.com/guicho271828/optima-bdd contains some usage.
 
 ** macro define-with-typevar ((typevars) &body body)
 
@@ -83,6 +59,27 @@ Here, the definition of type specifier =(/ lifted args...)= follows.
          (gethash (cons name args) *typevar-types*))
        (error "failed to expand the lifted structure type ~a with arguments ~a" name args)))
 #+END_SRC
+
+** macro ftype (name-or-names &rest types)
+
+Abbreviation of =(declaim (ftype (function (<types...>) <type>) <name-or-names...>))=.
+In a smart implementation like sbcl, using =ftype= declaration is preferred
+over =the= and =(declare (type ...))=.
+
+Besides, =defun= and =ftype= both have 5 characters and gives cleaner code.
+
+** structue id-mixin
+
+It has an only slot named =id= and meant to be :include-ed into the
+structure. It has a fixnum value, and a random value is assigned to this
+slot on each instantiation.
+
+This is particularly important when using a hash table to avoid duplicated
+evaluation. The performance of the hash function affects the rate of hash
+conflict. However, SBCL yields the same sxhash value for the instances of the same
+class, and results in a bad hashing result.
+
+https://github.com/guicho271828/optima-bdd contains some usage.
 
 ** Dependencies
 
