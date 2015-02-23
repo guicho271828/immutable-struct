@@ -80,13 +80,16 @@
   content ;; <--------  non-typed slot in the middle
   (right (leaf) :type rb-tree))
 
+(defun canonicalize-name-or-names (name-or-names)
+  (match name-or-names
+    ((list 'setf _) (list name-or-names))
+    (_ (ensure-list name-or-names))))
+
 (defmacro ftype (name-or-names &rest types)
   "abbreviation of (declaim (ftype (function (<types...>) <type>)
 <name>)). the last type is used for the return type."
   `(declaim (cl:ftype (function ,(butlast types) ,(lastcar types))
-                      ,@(match name-or-names
-                          ((list 'setf _) (list name-or-names))
-                          (_ (ensure-list name-or-names))))))
+                      ,@(canonicalize-name-or-names name-or-names))))
 
 (defmacro defun-match (name args &body body)
   `(defun ,name (,@args)
