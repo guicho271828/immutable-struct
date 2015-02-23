@@ -46,12 +46,42 @@ https://github.com/guicho271828/optima-bdd contains some usage.
 ** macro define-with-typevar ((typevars) &body body)
 
 Defines a type variable. The actual instances of the structure/function can
-be defined explicitly via =(instantiate-structure <struct-name>
-<type-values...>)= and =(instantiate-ftype <function-name>
-<type-values...>)=.
+be defined explicitly via functions =instantiate-structure= and =instantiate-ftype=.
 
 #+BEGIN_SRC lisp
-#+INCLUDE example.lisp
+  (define-with-typevar (<s> <t>)
+    (defstruct coordinate2
+      (x 0 :type <s>)
+      (y 0 :type <t>)
+      (z 0 :type <s>))
+    (ftype vector-+ (/ coordinate2 <s> <t>) (/ coordinate2 <s> <t>) (/ coordinate2 <s> <t>))
+    (defun vector-+ (v1 v2)
+      (declare (optimize (speed 3) (space 0) (safety 0) (debug 0)))
+      (coordinate2
+       (+ (coordinate2-x v1)
+          (coordinate2-x v2))
+       (+ (coordinate2-y v1)
+          (coordinate2-y v2))
+       (+ (coordinate2-z v1)
+          (coordinate2-z v2)))))
+
+   (instantiate-ftype 'vector-+ 'fixnum 'fixnum)
+
+;-->
+; Instantiating a function VECTOR-+ with typevars (FIXNUM FIXNUM)
+; (FTYPE VECTOR-+/FIXNUM/FIXNUM (/ COORDINATE2 FIXNUM FIXNUM) (/ COORDINATE2 FIXNUM FIXNUM)...)
+; Instantiating a structure COORDINATE2 with typevars (FIXNUM FIXNUM)..
+#+END_SRC
+
+Here, the definition of type specifier =(/ lifted args...)= follows.
+
+#+BEGIN_SRC lisp
+(deftype / (name &rest args)
+   (or (gethash (cons name args) *typevar-types*)
+       (progn
+         (apply #'instantiate-structure name args)
+         (gethash (cons name args) *typevar-types*))
+       (error "failed to expand the lifted structure type ~a with arguments ~a" name args)))
 #+END_SRC
 
 ** Dependencies
