@@ -20,7 +20,7 @@
   :author "Masataro Asai"
   :mailto "guicho2.71828@gmail.com"
   :license "LLGPL"
-  :depends-on (:optima :alexandria)
+  :depends-on (:optima :alexandria :lisp-namespace :compiler-macro)
   :components ((:module "src"
                 :components
                 ((:file "package")
