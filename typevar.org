@@ -83,3 +83,7 @@ structure instance if it is not already instantiated.
          (gethash (cons name args) *typevar-types*))
        (error "failed to expand the lifted structure type ~a with arguments ~a" name args)))
 #+END_SRC
+
+But note that, the timing of type expansion may differ significantly
+across implementations. Controlling the expansion is not
+possible. (according to http://google-styleguide.googlecode.com/svn/trunk/lispguide.xml#SATISFIES)
