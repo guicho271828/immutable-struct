@@ -7,16 +7,16 @@
 
 ;;; utilities
 (defmacro getenv (&environment env) env)
-(defmacro %macroexpand (env forms)
-  `(progn ,@(%%macroexpand env forms)))
-(defun %%macroexpand (env forms)
-  (mapcar (lambda (form) (macroexpand form env)) forms))
 (defun expand-with-local-macros (definitions body)
   (let ((local-env
          (#-sbcl progn #+sbcl sb-ext:without-package-locks
                  (eval `(macrolet ,definitions
                           (getenv))))))
-    `(%macroexpand ,local-env ,body)))
+    (macroexpand `(%macroexpand ,local-env ,body))))
+(defmacro %macroexpand (env forms)
+  `(progn ,@(%%macroexpand env forms)))
+(defun %%macroexpand (env forms)
+  (mapcar (lambda (form) (macroexpand form env)) forms))
 
 ;;; define-with-typevar
 
@@ -55,6 +55,7 @@
        (_ slotform)))))
 
 
+
 (defun instantiate-name-and-options (name-and-options typevar-typeval)
   (ematch typevar-typeval
     ((cons _ typeval)
@@ -80,24 +81,35 @@
                :format-arguments (list name))
          (return-from %defstruct-with-typevar
            `(safe-defstruct ,name-and-options ,documentation ,@slots)))
+       (%%defstruct typevars name documentation name-and-options slots)))))
 
-       (with-gensyms (slot)
-         `(setf (symbol-typevar-structure ',name)
-                (lambda ,typevars ; (<s>)
-                  (let ((ground-slots
-                         (mapcar (lambda (,slot)
-                                   (reduce #'instantiate-slot-type
-                                           (mapcar #'cons ',typevars (list ,@typevars))
-                                           :initial-value ,slot))
-                                 ',slots))
-                        (ground-name-and-options
-                         (reduce #'instantiate-name-and-options
-                                 (mapcar #'cons ',typevars (list ,@typevars))
-                                 :initial-value ',name-and-options)))
-                    (list* 'defstruct
-                           ground-name-and-options
-                           ,documentation
-                           ground-slots)))))))))
+(defun %%defstruct (typevars name documentation name-and-options slots)
+  (let ((tb-name (symbolicate '* name '-types-table '*)))
+    (with-gensyms (slot)
+      `(progn
+         (defvar ,tb-name (make-hash-table :test #'equal))
+         (deftype ,name (,@typevars)
+           (gethash (list ,@typevars) ,tb-name))
+         (setf (symbol-typevar-structure ',name)
+               (lambda ,typevars ; (<s>)
+                 (let ((ground-slots
+                        (mapcar (lambda (,slot)
+                                  (reduce #'instantiate-slot-type
+                                          (mapcar #'cons ',typevars (list ,@typevars))
+                                          :initial-value ,slot))
+                                ',slots))
+                       (ground-name-and-options
+                        (reduce #'instantiate-name-and-options
+                                (mapcar #'cons ',typevars (list ,@typevars))
+                                :initial-value ',name-and-options)))
+                   (match ground-name-and-options
+                     ((list* gname _)
+                      `(progn
+                         (setf (gethash '(,,@typevars) ,',tb-name) ',gname)
+                         (defstruct
+                             ,ground-name-and-options
+                           ,',documentation
+                           ,@ground-slots)))))))))))
 
 ;;; %ftype-with-typevar
 
@@ -112,7 +124,10 @@
 ;;; instantiation
 
 (defun instantiate-structure-form (name &rest types)
-  (apply (symbol-typevar-structure name) types))
+  (handler-bind ((program-error (lambda (c)
+                                  (declare (ignore c))
+                                  (error "insufficient number of typevar"))))
+    (apply (symbol-typevar-structure name) types)))
 
 (defun instantiate-structure (name &rest types)
   (eval (apply #'instantiate-structure-form name types)))

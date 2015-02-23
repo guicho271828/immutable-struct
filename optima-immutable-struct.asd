@@ -24,6 +24,7 @@
   :components ((:module "src"
                 :components
                 ((:file "package")
-                 (:file "id"))))
+                 (:file "id")
+                 (:file "typevar"))))
   :description ""
   :in-order-to ((test-op (load-op optima-immutable-struct.test))))

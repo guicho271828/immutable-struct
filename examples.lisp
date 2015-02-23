@@ -13,5 +13,16 @@
     (x 0 :type <s>)
     (y 0 :type <s>)))
 
+(define-with-typevar (<s> <t>)
+  (defstruct coordinate2
+    (x 0 :type <s>)
+    (y 0 :type <t>)))
 
-(instantiate-structure-form 'coordinate 'fixnum)
+
+(print (instantiate-structure-form 'coordinate 'fixnum))
+(instantiate-structure 'coordinate 'fixnum)
+(print (instantiate-structure-form 'coordinate2 'fixnum))
+
+(print (instantiate-structure-form 'coordinate2 'fixnum 'float))
+
+SB-INT:SIMPLE-PROGRAM-ERROR
