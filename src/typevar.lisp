@@ -101,6 +101,7 @@
     (ematch name-and-options
       ((list* name _)
        `(progn
+          ;; default / untyped structure
           (defstruct ,name-and-options
             ,documentation
             ,@(mapcar (lambda (slot)
@@ -108,6 +109,7 @@
                                 (mapcar #'cons typevars (mapcar (constantly t) typevars))
                                 :initial-value slot))
                       slots))
+          ;; store the information for later instantiation
           (setf (symbol-typevar-structure ',name)
                 (struct-info
                  (lambda ,typevars ; (<s>)
@@ -140,6 +142,7 @@
 
 (lispn:define-namespace typevar-function ft-info)
 (defun ensure-typevar-function (name)
+  "ensure that the ft-info for the given name is bound"
   (unless (typevar-function-boundp name)
     (setf (symbol-typevar-function name) (ft-info nil nil nil))))
 
@@ -162,6 +165,7 @@
        ,@(mapcar (lambda (name)
                    `(progn
                       (ensure-typevar-function ',name)
+                      ;; store the information for later instantiation
                       (setf (ft-info-source (symbol-typevar-function ',name))
                             ',types
                             (ft-info-ftype (symbol-typevar-function ',name))
@@ -183,6 +187,7 @@
 (defun %defun-with-typevar (typevars name args body)
   `(progn
      (ensure-typevar-function ',name)
+     ;; store the information for later instantiation
      (setf (ft-info-defun (symbol-typevar-function ',name))
            (lambda ,typevars ; (<s>)
              `(macrolet ,(%generate-constructor-transformer ',name ',typevars (list ,@typevars))
@@ -228,17 +233,20 @@
 ;;; instantiation
 
 (defun instantiate-structure-form (name &rest types)
+  "just return the form"
   (handler-bind ((program-error (lambda (c)
                                   (declare (ignore c))
                                   (error "insufficient number of typevar"))))
     (apply (struct-info-expander (symbol-typevar-structure name)) types)))
 
 (defun instantiate-structure (name &rest types)
+  "evaluate the form"
   (format *trace-output* "~&; Instantiating a structure ~A with typevars ~A" name types)
   (eval (apply #'instantiate-structure-form name types)))
 
 
 (defun instantiate-ftype-form (name &rest types)
+  "just return the forms"
   (handler-bind ((program-error (lambda (c)
                                   (declare (ignore c))
                                   (error "insufficient number of typevar"))))
@@ -246,6 +254,7 @@
             (apply (ft-info-defun (symbol-typevar-function name)) types))))
 
 (defun instantiate-ftype (name &rest types)
+  "evaluate the form"
   (format *trace-output* "~&; Instantiating a function ~A with typevars ~A" name types)
   (multiple-value-bind (ftype defun)
       (apply #'instantiate-ftype-form name types)
