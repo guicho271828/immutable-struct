@@ -14,7 +14,7 @@
                           (getenv))))))
     (macroexpand `(%macroexpand ,local-env ,body))))
 (defmacro %macroexpand (env forms)
-  `(progn ,@(%%macroexpand env forms)))
+  `(locally ,@(%%macroexpand env forms)))
 (defun %%macroexpand (env forms)
   (mapcar (lambda (form) (macroexpand form env)) forms))
 
@@ -58,15 +58,15 @@
   (ematch name-and-options
     ((list* name options)
      `(,(instantiate-name name typevals)
-        (:include ,name ,@(mapcar #'car ground-slots))
+        (:include ,name ,@ground-slots
+                  ;;,@(mapcar #'car ground-slots)
+                  )
         ,@options))))
 
 (defun instantiate-name (name typevals)
   (reduce (lambda (name type)
             (symbolicate name '/ type))
           typevals :initial-value name))
-
-(lispn:define-namespace typevar-structure function)
 
 (defun %defstruct-with-typevar (typevars name-and-options documentation slots)
   (multiple-value-match (canonical-defstruct name-and-options documentation slots)
@@ -91,6 +91,11 @@
          (gethash (cons name args) *typevar-types*))
        name)))
 
+(lispn:define-namespace typevar-structure struct-info)
+(cl:defstruct (struct-info (:constructor struct-info (expander slots)))
+  "defstruct infomation"
+  expander slots)
+
 (defun %%defstruct (typevars name-and-options documentation slots)
   (with-gensyms (slot)
     (ematch name-and-options
@@ -104,30 +109,41 @@
                                 :initial-value slot))
                       slots))
           (setf (symbol-typevar-structure ',name)
-                (lambda ,typevars ; (<s>)
-                  (let* ((ground-slots
-                          (mapcar (lambda (,slot)
-                                    (reduce #'instantiate-slot
-                                            (mapcar #'cons ',typevars (list ,@typevars))
-                                            :initial-value ,slot))
-                                  ',slots))
-                         (ground-name-and-options
-                          (append-constructor
-                           (instantiate-name-and-options
-                            ',name-and-options
-                            (list ,@typevars)
-                            ground-slots)
-                           ground-slots)))
-                    (match ground-name-and-options
-                      ((list* gname _)
-                       `(progn
-                          (setf (gethash '(,',name ,,@typevars) *typevar-types*) ',gname)
-                          (defstruct ,ground-name-and-options
-                            ,@ground-slots))))))))))))
+                (struct-info
+                 (lambda ,typevars ; (<s>)
+                   (let* ((ground-slots
+                           (mapcar (lambda (,slot)
+                                     (reduce #'instantiate-slot
+                                             (mapcar #'cons ',typevars (list ,@typevars))
+                                             :initial-value ,slot))
+                                   ',slots))
+                          (ground-name-and-options
+                           (append-constructor
+                            (instantiate-name-and-options
+                             ',name-and-options
+                             (list ,@typevars)
+                             ground-slots)
+                            ground-slots)))
+                     (match ground-name-and-options
+                       ((list* gname _)
+                        `(progn
+                           (setf (gethash '(,',name ,,@typevars) *typevar-types*) ',gname)
+                           (defstruct ,ground-name-and-options
+                             #+nil ,@ground-slots))))))
+                 ',slots)))))))
 
 ;;; %ftype-with-typevar
 
-(lispn:define-namespace typevar-function (cons (or null function) (or null function)))
+(cl:defstruct (ft-info (:constructor ft-info (ftype defun source)))
+  "ftype infomation"
+  ftype defun source)
+
+(lispn:define-namespace typevar-function ft-info)
+(defun ensure-typevar-function (name)
+  (unless (typevar-function-boundp name)
+    (setf (symbol-typevar-function name) (ft-info nil nil nil))))
+
+
 (defun %ftype-with-typevar (typevars name-or-names types)
   (let ((typevars (intersection typevars (remove-duplicates
                                           (flatten types))))
@@ -145,9 +161,10 @@
     `(progn
        ,@(mapcar (lambda (name)
                    `(progn
-                      (unless (typevar-function-boundp ',name)
-                        (setf (symbol-typevar-function ',name) (cons nil nil)))
-                      (setf (car (symbol-typevar-function ',name))
+                      (ensure-typevar-function ',name)
+                      (setf (ft-info-source (symbol-typevar-function ',name))
+                            ',types
+                            (ft-info-ftype (symbol-typevar-function ',name))
                             (lambda ,typevars
                               `(ftype ,(instantiate-name ',name (list ,@typevars))
                                       ,@(subst-all (list ,@typevars)
@@ -165,12 +182,48 @@
 
 (defun %defun-with-typevar (typevars name args body)
   `(progn
-     (unless (typevar-function-boundp ',name)
-       (setf (symbol-typevar-function ',name) (cons nil nil)))
-     (setf (cdr (symbol-typevar-function ',name))
+     (ensure-typevar-function ',name)
+     (setf (ft-info-defun (symbol-typevar-function ',name))
            (lambda ,typevars ; (<s>)
-             `(defun ,(instantiate-name ',name (list ,@typevars)) ,',args
-                ,@',body)))))
+             `(macrolet ,(%generate-constructor-transformer ',name ',typevars (list ,@typevars))
+                (defun ,(instantiate-name ',name (list ,@typevars)) ,',args
+                  ;; ,(expand-with-local-macros
+                  ;;   (%generate-constructor-transformer ',name ',typevars (list ,@typevars))
+                  ;;   ',body)
+                  ,@',body))))))
+
+(defun %generate-constructor-transformer (name typevars typevals)
+  (let ((types (ft-info-source (symbol-typevar-function name)))
+        (type-alist (mapcar #'cons typevars typevals)))
+    ;; e.g. ((/ coordinate2 <s> <t>) (/ coordinate2 <s> <t>) (/ coordinate2 <s> <t>))
+    (let (found)
+      (labels ((rec (tree)
+                 (match tree
+                   ((list* '/ args) (push args found))
+                   ((list* _ args)
+                    (map nil #'rec args)))))
+        (map nil #'rec types))
+      ;; found : ((coordinate2 <s> <t>) (oordinate2 <s> <t>) (coordinate2 <s> <t>))
+      (setf found (remove-duplicates found))
+      ;; found : ((coordinate2 <s> <t>))
+      (mappend (lambda (type)
+                 (match type
+                   ((list* lifted parameters)
+                    ;; (coordinate2 args...) -> (coordinate/fixnum/float args...)
+                    ;; (coordinate2-x arg) -> (coordinate/fixnum/float-x arg)
+                    ;; (coordinate2-y arg) -> (coordinate/fixnum/float-y arg)
+                    ;; (coordinate2-z arg) -> (coordinate/fixnum/float-z arg)
+                    (let* ((ground (instantiate-name
+                                    lifted
+                                    (mapcar (lambda (p) (cdr (assoc p type-alist)))
+                                            parameters)))
+                           (slots (struct-info-slots (symbol-typevar-structure lifted))))
+                      `((,lifted (&rest args) `(,',ground ,@args))
+                        ,@(mapcar (lambda (slot)
+                                    `(,(symbolicate lifted '- slot) (arg)
+                                       `(,',(symbolicate ground '- slot) ,arg)))
+                                  (mapcar #'car slots)))))))
+               found))))
 
 ;;; instantiation
 
@@ -178,7 +231,7 @@
   (handler-bind ((program-error (lambda (c)
                                   (declare (ignore c))
                                   (error "insufficient number of typevar"))))
-    (apply (symbol-typevar-structure name) types)))
+    (apply (struct-info-expander (symbol-typevar-structure name)) types)))
 
 (defun instantiate-structure (name &rest types)
   (format *trace-output* "~&; Instantiating a structure ~A with typevars ~A" name types)
@@ -189,14 +242,16 @@
   (handler-bind ((program-error (lambda (c)
                                   (declare (ignore c))
                                   (error "insufficient number of typevar"))))
-    (values (apply (car (symbol-typevar-function name)) types)
-            (apply (cdr (symbol-typevar-function name)) types))))
+    (values (apply (ft-info-ftype (symbol-typevar-function name)) types)
+            (apply (ft-info-defun (symbol-typevar-function name)) types))))
 
 (defun instantiate-ftype (name &rest types)
   (format *trace-output* "~&; Instantiating a function ~A with typevars ~A" name types)
   (multiple-value-bind (ftype defun)
       (apply #'instantiate-ftype-form name types)
-    (eval (print ftype))
-    (eval (print defun))))
+    (handler-bind ((error (lambda (c) (signal c))))
+      (eval (print ftype))
+      (print (macroexpand defun))
+      (eval (print defun)))))
 
-
+;;; 

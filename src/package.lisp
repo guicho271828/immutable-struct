@@ -11,7 +11,14 @@
    :defstruct
    :ftype
    :id-mixin
-   :defun-match))
+   :defun-match
+   :instantiate-ftype-form
+   :instantiate-ftype
+   :instantiate-structure-form
+   :instantiate-structure
+   :typevar-function
+   :typevar-structure
+   :define-with-typevar))
 (in-package :optima-immutable-struct)
 
 ;; blah blah blah.
@@ -36,6 +43,8 @@
 
 (defun append-constructor (name-and-options slots)
   (ematch name-and-options
+    ((list* _ (assoc :constructor _))
+     name-and-options)
     ((list* name options)
      `(,name ,@options (:constructor ,name (&optional ,@(mapcar #'car slots)))))))
 
