@@ -10,22 +10,19 @@
   (:export
    :defstruct
    :ftype
-   :id-mixin))
+   :id-mixin
+   :defun-match))
 (in-package :optima-immutable-struct)
 
 ;; blah blah blah.
 
-(defmacro defstruct (name-and-options &optional documentation &rest slots)
-  "A variation of defstruct, with read-only slots and automatically defined constructor.
-+ The constructor name has the different convention compared to the default naming convention in cl.
-  It has (<name> &optional <slots...>) and has no keyword argument.
-+ It adds read-only option in cl:defstruct to each slot definition.
-+ It uses the noninterned symbols for the name of each slot, disallowing the use of slot-value.
-+ It also defines a pattern matcher clause in exactly the same form as the constructor.
-"
+(defun canonicalize-defstruct-form (name-and-options documentation slots)
   (unless (stringp documentation)
     (psetf documentation ""
-           slots (cons documentation slots)))
+           slots (if documentation
+                     (cons documentation slots)
+                     ;; doc and slots are both nil
+                     nil)))
   (let ((slots (mapcar (lambda (slot)
                          (ematch slot
                            ((list* (structure symbol (-name name)) initform options)
@@ -35,10 +32,26 @@
                        slots)))
     (ematch (ensure-list name-and-options)
       ((list* name options)
+       (values `(,name
+                 ,@options
+                 (:constructor ,name (&optional ,@(mapcar #'car slots))))
+               documentation
+               slots)))))
+  
+(defmacro defstruct (name-and-options &optional documentation &rest slots)
+  "A variation of defstruct, with read-only slots and automatically defined constructor.
++ The constructor name has the different convention compared to the default naming convention in cl.
+  It has (<name> &optional <slots...>) and has no keyword argument.
++ It adds read-only option in cl:defstruct to each slot definition.
++ It uses the noninterned symbols for the name of each slot, disallowing the use of slot-value.
++ It also defines a pattern matcher clause in exactly the same form as the constructor.
+"
+  (multiple-value-bind (name-and-options documentation slots)
+      (canonicalize-defstruct-form name-and-options documentation slots)
+    (ematch name-and-options
+      ((list* name _)
        `(eval-when (:compile-toplevel :load-toplevel :execute)
-          (cl:defstruct (,name
-                         ,@options
-                         (:constructor ,name (&optional ,@(mapcar #'car slots))))
+          (cl:defstruct ,name-and-options
             ,documentation
             ,@slots)
           ,(%defpattern name slots))))))
@@ -74,3 +87,8 @@
                       ,@(match name-or-names
                           ((list 'setf _) (list name-or-names))
                           (_ (ensure-list name-or-names))))))
+
+(defmacro defun-match (name args &body body)
+  `(defun ,name (,@args)
+     (multiple-value-match (values ,@args)
+       ,@body)))
