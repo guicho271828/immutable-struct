@@ -26,9 +26,8 @@
        (%defstruct-with-typevar ',typevars name-and-options documentation slots))
      (ftype (name-or-names &rest types)
             (%ftype-with-typevar ',typevars name-or-names types))
-     ;; (defun (name args &body body)
-     ;;     (%defun-with-typevar ',typevars name args body))
-     )
+     (defun (name args &body body)
+         (%defun-with-typevar ',typevars name args body)))
    body))
 
 ;; prevent recursive expansion
@@ -45,37 +44,33 @@
     ((list* _ _ (property :type type))
      type)))
 
-(defun instantiate-slot-type (slotform typevar-typeval)
+(defun instantiate-slot (slotform typevar-typeval)
   (match typevar-typeval
     ((cons typevar typeval)
      (match slotform
        ((list* name default (and options (property :type (eq typevar))))
         (let ((options (copy-list options)))
           (setf (getf options :type) typeval)
-          (list* name default options)))
+          (list* name (coerce default typeval) options)))
        (_ slotform)))))
 
-
+(defun instantiate-name-and-options (name-and-options typevals ground-slots)
+  (ematch name-and-options
+    ((list* name options)
+     `(,(instantiate-name name typevals)
+        (:include ,name ,@(mapcar #'car ground-slots))
+        ,@options))))
 
 (defun instantiate-name (name typevals)
   (reduce (lambda (name type)
             (symbolicate name '/ type))
           typevals :initial-value name))
 
-(defun instantiate-name-and-options (name-and-options ground-name)
-  (ematch name-and-options
-    ((list* name (and options (assoc :constructor
-                                     (list* (eq name) args))))
-     `(,ground-name
-       (:include name)
-       (:constructor ,ground-name ,@args)
-       ,@(remove :constructor options :key #'car)))))
-
 (lispn:define-namespace typevar-structure function)
 
 (defun %defstruct-with-typevar (typevars name-and-options documentation slots)
-  (multiple-value-match (canonicalize-defstruct-form name-and-options documentation slots)
-    (((and name-and-options (list* name _))  documentation slots)
+  (multiple-value-match (canonical-defstruct name-and-options documentation slots)
+    (((and name-and-options (list* name _)) documentation slots)
      (let ((typevars (intersection typevars (mapcar #'slot-type slots))))
        ;; ignore typevars which are not used in this structure
        (unless typevars
@@ -85,40 +80,54 @@
                :format-arguments (list name))
          (return-from %defstruct-with-typevar
            `(safe-defstruct ,name-and-options ,documentation ,@slots)))
-       (%%defstruct typevars name documentation name-and-options slots)))))
+       (%%defstruct typevars name-and-options documentation slots)))))
 
-(defun %%defstruct (typevars name documentation name-and-options slots)
-  (let ((tb-name (symbolicate '* name '-types-table '*)))
-    (with-gensyms (slot)
-      `(progn
-         (defvar ,tb-name (make-hash-table :test #'equal))
-         (deftype ,name (,@typevars)
-           (gethash (list ,@typevars) ,tb-name))
-         (setf (symbol-typevar-structure ',name)
-               (lambda ,typevars ; (<s>)
-                 (let ((ground-slots
-                        (mapcar (lambda (,slot)
-                                  (reduce #'instantiate-slot-type
-                                          (mapcar #'cons ',typevars (list ,@typevars))
-                                          :initial-value ,slot))
-                                ',slots))
-                       (ground-name-and-options
-                        (instantiate-name-and-options
-                         ',name-and-options
-                         (instantiate-name ',name (list ,@typevars)))))
-                   (match ground-name-and-options
-                     ((list* gname _)
-                      `(progn
-                         (setf (gethash '(,,@typevars) ,',tb-name) ',gname)
-                         (defstruct
-                             ,ground-name-and-options
-                           ,',documentation
-                           ,@ground-slots)))))))))))
+(defvar *typevar-types* (make-hash-table :test #'equal))
+(#-sbcl progn #+sbcl sb-ext:without-package-locks
+ (deftype / (name &rest args)
+   (or (gethash (cons name args) *typevar-types*)
+       (progn
+         (apply #'instantiate-structure name args)
+         (gethash (cons name args) *typevar-types*))
+       name)))
+
+(defun %%defstruct (typevars name-and-options documentation slots)
+  (with-gensyms (slot)
+    (ematch name-and-options
+      ((list* name _)
+       `(progn
+          (defstruct ,name-and-options
+            ,documentation
+            ,@(mapcar (lambda (slot)
+                        (reduce #'instantiate-slot
+                                (mapcar #'cons typevars (mapcar (constantly t) typevars))
+                                :initial-value slot))
+                      slots))
+          (setf (symbol-typevar-structure ',name)
+                (lambda ,typevars ; (<s>)
+                  (let* ((ground-slots
+                          (mapcar (lambda (,slot)
+                                    (reduce #'instantiate-slot
+                                            (mapcar #'cons ',typevars (list ,@typevars))
+                                            :initial-value ,slot))
+                                  ',slots))
+                         (ground-name-and-options
+                          (append-constructor
+                           (instantiate-name-and-options
+                            ',name-and-options
+                            (list ,@typevars)
+                            ground-slots)
+                           ground-slots)))
+                    (match ground-name-and-options
+                      ((list* gname _)
+                       `(progn
+                          (setf (gethash '(,',name ,,@typevars) *typevar-types*) ',gname)
+                          (defstruct ,ground-name-and-options
+                            ,@ground-slots))))))))))))
 
 ;;; %ftype-with-typevar
 
-(lispn:define-namespace typevar-ftype function)
-
+(lispn:define-namespace typevar-function (cons (or null function) (or null function)))
 (defun %ftype-with-typevar (typevars name-or-names types)
   (let ((typevars (intersection typevars (remove-duplicates
                                           (flatten types))))
@@ -135,12 +144,15 @@
     
     `(progn
        ,@(mapcar (lambda (name)
-                   `(setf (symbol-typevar-ftype ',name)
-                          (lambda ,typevars
-                            `(ftype ,(instantiate-name ',name (list ,@typevars))
-                                    ,@(subst-all (list ,@typevars)
-                                                 ',typevars
-                                                 ',types)))))
+                   `(progn
+                      (unless (typevar-function-boundp ',name)
+                        (setf (symbol-typevar-function ',name) (cons nil nil)))
+                      (setf (car (symbol-typevar-function ',name))
+                            (lambda ,typevars
+                              `(ftype ,(instantiate-name ',name (list ,@typevars))
+                                      ,@(subst-all (list ,@typevars)
+                                                   ',typevars
+                                                   ',types))))))
                  names))))
 
 (defun subst-all (news olds tree)
@@ -152,8 +164,13 @@
 ;;; %defun-with-typevar
 
 (defun %defun-with-typevar (typevars name args body)
-  
-  (warn "no impl yet"))
+  `(progn
+     (unless (typevar-function-boundp ',name)
+       (setf (symbol-typevar-function ',name) (cons nil nil)))
+     (setf (cdr (symbol-typevar-function ',name))
+           (lambda ,typevars ; (<s>)
+             `(defun ,(instantiate-name ',name (list ,@typevars)) ,',args
+                ,@',body)))))
 
 ;;; instantiation
 
@@ -164,24 +181,22 @@
     (apply (symbol-typevar-structure name) types)))
 
 (defun instantiate-structure (name &rest types)
-  (eval (apply #'instantiate-structure-form name types)))
+  (format *trace-output* "~&; Instantiating a structure ~A with typevars ~A" name types)
+  (eval (print (apply #'instantiate-structure-form name types))))
 
 
 (defun instantiate-ftype-form (name &rest types)
   (handler-bind ((program-error (lambda (c)
                                   (declare (ignore c))
                                   (error "insufficient number of typevar"))))
-    (apply (symbol-typevar-ftype name) types)))
+    (values (apply (car (symbol-typevar-function name)) types)
+            (apply (cdr (symbol-typevar-function name)) types))))
 
 (defun instantiate-ftype (name &rest types)
-  (eval (apply #'instantiate-ftype-form name types)))
+  (format *trace-output* "~&; Instantiating a function ~A with typevars ~A" name types)
+  (multiple-value-bind (ftype defun)
+      (apply #'instantiate-ftype-form name types)
+    (eval (print ftype))
+    (eval (print defun))))
 
-;; (defun instantiate-defun-form (name &rest types)
-;;   (handler-bind ((program-error (lambda (c)
-;;                                   (declare (ignore c))
-;;                                   (error "insufficient number of typevar"))))
-;;     (apply (symbol-typevar-defun name) types)))
-;; 
-;; (defun instantiate-defun (name &rest types)
-;;   (eval (apply #'instantiate-defun-form name types)))
 

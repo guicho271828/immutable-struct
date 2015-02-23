@@ -16,7 +16,7 @@
 
 ;; blah blah blah.
 
-(defun canonicalize-defstruct-form (name-and-options documentation slots)
+(defun canonical-defstruct (name-and-options documentation slots)
   (unless (stringp documentation)
     (psetf documentation ""
            slots (if documentation
@@ -30,14 +30,15 @@
                            ((structure symbol (-name name))
                             (list (make-symbol name) nil :read-only t))))
                        slots)))
-    (ematch (ensure-list name-and-options)
-      ((list* name options)
-       (values `(,name
-                 ,@options
-                 (:constructor ,name (&optional ,@(mapcar #'car slots))))
-               documentation
-               slots)))))
-  
+    (values (ensure-list name-and-options)
+            documentation
+            slots)))
+
+(defun append-constructor (name-and-options slots)
+  (ematch name-and-options
+    ((list* name options)
+     `(,name ,@options (:constructor ,name (&optional ,@(mapcar #'car slots)))))))
+
 (defmacro defstruct (name-and-options &optional documentation &rest slots)
   "A variation of defstruct, with read-only slots and automatically defined constructor.
 + The constructor name has the different convention compared to the default naming convention in cl.
@@ -47,11 +48,11 @@
 + It also defines a pattern matcher clause in exactly the same form as the constructor.
 "
   (multiple-value-bind (name-and-options documentation slots)
-      (canonicalize-defstruct-form name-and-options documentation slots)
+      (canonical-defstruct name-and-options documentation slots)
     (ematch name-and-options
       ((list* name _)
        `(eval-when (:compile-toplevel :load-toplevel :execute)
-          (cl:defstruct ,name-and-options
+          (cl:defstruct ,(append-constructor name-and-options slots)
             ,documentation
             ,@slots)
           ,(%defpattern name slots))))))
