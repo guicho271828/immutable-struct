@@ -13,35 +13,45 @@ pattern matching.
 
 A variation of defstruct, with read-only slots and automatically defined constructor.
 
-+ The constructor name has the different convention compared to the default naming convention in cl.
-  It has (<name> &optional <slots...>) and has no keyword argument.
-+ It adds read-only option in cl:defstruct to each slot definition.
-+ It uses the noninterned symbols for the name of each slot, disallowing the use of slot-value.
-+ It also defines a pattern matcher clause in exactly the same form as the constructor.
++ Read-only :: using the standard cl feature.
++ Noninterned slot name :: Restricting the use of slot-value.
++ The constructor name :: (<name> &optional <slots...>) and has no keyword argument.
++ Pattern matcher :: (<name> &optional <slots...>), identical to the constructor.
 
 ** macro define-with-typevar ((typevars) &body body)
 
-Defines a type variable. The actual instances of the structure/function can
-be defined explicitly via functions =instantiate-structure= and =instantiate-ftype=.
+Defines some type variables and applies a special method to treat
+=defstruct,ftype,defun= forms inside the body: they are stored for the
+later instantiation of the type variables.
 
 #+BEGIN_SRC lisp
-  (define-with-typevar (<s> <t>)
-    (defstruct coordinate2
-      (x 0 :type <s>)
-      (y 0 :type <t>)
-      (z 0 :type <s>))
-    (ftype vector-+ (/ coordinate2 <s> <t>) (/ coordinate2 <s> <t>) (/ coordinate2 <s> <t>))
-    (defun vector-+ (v1 v2)
-      (declare (optimize (speed 3) (space 0) (safety 0) (debug 0)))
-      (coordinate2
-       (+ (coordinate2-x v1)
-          (coordinate2-x v2))
-       (+ (coordinate2-y v1)
-          (coordinate2-y v2))
-       (+ (coordinate2-z v1)
-          (coordinate2-z v2)))))
+(define-with-typevar (<s> <t>)
+  (defstruct coordinate2
+    (x 0 :type <s>)
+    (y 0 :type <t>)
+    (z 0 :type <s>))
+  (ftype vector-+ (/ coordinate2 <s> <t>) (/ coordinate2 <s> <t>) (/ coordinate2 <s> <t>))
+  (defun vector-+ (v1 v2)
+    (declare (optimize (speed 3) (space 0) (safety 0) (debug 0)))
+    (coordinate2
+     (+ (coordinate2-x v1)
+        (coordinate2-x v2))
+     (+ (coordinate2-y v1)
+        (coordinate2-y v2))
+     (+ (coordinate2-z v1)
+        (coordinate2-z v2)))))
+#+END_SRC
 
-   (instantiate-ftype 'vector-+ 'fixnum 'fixnum)
+The instantiation of the structures/functions can be achived later, with
+functions =instantiate-structure= and =instantiate-ftype=.
+
+Given the type values (vs type variables), several specialized instances of
+functions/structures are defined automatically. New instances are named as
+=<original name>{/<type>}*=, following the convention that can be seen in
+some specialized functions in sbcl.
+
+#+BEGIN_SRC lisp
+(instantiate-ftype 'vector-+ 'fixnum 'fixnum)
 
 ;-->
 ; Instantiating a function VECTOR-+ with typevars (FIXNUM FIXNUM)
@@ -49,7 +59,9 @@ be defined explicitly via functions =instantiate-structure= and =instantiate-fty
 ; Instantiating a structure COORDINATE2 with typevars (FIXNUM FIXNUM)..
 #+END_SRC
 
-Here, the definition of type specifier =(/ lifted args...)= follows.
+The type specifier for these structures can be referenced by =(/ lifted args...)=.
+Upon the type expansion, it tries to instantiate the structure
+instance. In other words, the type information /propagates/.
 
 #+BEGIN_SRC lisp
 (deftype / (name &rest args)
