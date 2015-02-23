@@ -53,11 +53,9 @@
     (instantiate-structure-form 'coordinate2 'fixnum))
   
   (finishes
-   (print (instantiate-structure-form 'coordinate2 'fixnum 'float))
    (instantiate-structure 'coordinate2 'fixnum 'float))
 
   (finishes
-   (print (multiple-value-list (instantiate-ftype-form 'vector-+ 'fixnum 'float)))
    (instantiate-ftype 'vector-+ 'fixnum 'float))
 
   (finishes

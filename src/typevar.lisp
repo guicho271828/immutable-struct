@@ -235,7 +235,7 @@
 
 (defun instantiate-structure (name &rest types)
   (format *trace-output* "~&; Instantiating a structure ~A with typevars ~A" name types)
-  (eval (print (apply #'instantiate-structure-form name types))))
+  (eval (apply #'instantiate-structure-form name types)))
 
 
 (defun instantiate-ftype-form (name &rest types)
@@ -251,7 +251,6 @@
       (apply #'instantiate-ftype-form name types)
     (handler-bind ((error (lambda (c) (signal c))))
       (eval (print ftype))
-      (print (macroexpand defun))
-      (eval (print defun)))))
+      (eval defun))))
 
 ;;; 
