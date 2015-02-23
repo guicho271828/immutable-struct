@@ -37,3 +37,8 @@
 
 (print (multiple-value-list (instantiate-ftype-form 'vector-+ 'fixnum 'float)))
 (instantiate-ftype 'vector-+ 'fixnum 'float)
+
+
+;; expanding a type specifier (/ coordinate2 <s> <t>) with fixnum/fixnum
+;; results in instantiating the structure coordinate2/fixnum/fixnum.
+(instantiate-ftype 'vector-+ 'fixnum 'fixnum)

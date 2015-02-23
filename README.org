@@ -1,11 +1,13 @@
 
 * OPTIMA-IMMUTABLE-STRUCT 
 
-Simple library that encourage the use of functional programming +
++Simple+ Library that encourage the use of functional programming +
 pattern matching.
 
 It provides a wrapper for =defstruct= and a simple macro =ftype=. The symbols
 are different from =cl:defstruct= and =cl:ftype= so that it avoids error in sbcl.
+
+*NEWS*: It also provides =typevar=, one naive way to define efficient algebraic data types.
 
 ** macro defstruct (name-and-options &rest slots)
 
@@ -40,6 +42,17 @@ conflict. However, SBCL yields the same sxhash value for the instances of the sa
 class, and results in a bad hashing result.
 
 https://github.com/guicho271828/optima-bdd contains some usage.
+
+** macro define-with-typevar ((typevars) &body body)
+
+Defines a type variable. The actual instances of the structure/function can
+be defined explicitly via =(instantiate-structure <struct-name>
+<type-values...>)= and =(instantiate-ftype <function-name>
+<type-values...>)=.
+
+#+BEGIN_SRC lisp
+#+INCLUDE example.lisp
+#+END_SRC
 
 ** Dependencies
 
