@@ -26,59 +26,14 @@ over =the= and =(declare (type ...))=.
 
 Besides, =defun= and =ftype= both have 5 characters and gives cleaner code.
 
-** macro define-with-typevar ((typevars) &body body)
+** Type variables
 
-Defines some type variables and applies a special method to treat
-=defstruct,ftype,defun= forms inside the body: they are stored for the
-later instantiation of the type variables.
+Macro =define-with-typevar= defines some type variables and applies a special method to treat
+=defstruct,ftype,defun= forms inside the body.  It supports a trivial type
+propagation mechanism.  Thanks to the static typing, it results in a fast
+and efficient machine code unlike CLOS.
 
-#+BEGIN_SRC lisp
-(define-with-typevar (<s> <t>)
-  (defstruct coordinate2
-    (x 0 :type <s>)
-    (y 0 :type <t>)
-    (z 0 :type <s>))
-  (ftype vector-+ (/ coordinate2 <s> <t>) (/ coordinate2 <s> <t>) (/ coordinate2 <s> <t>))
-  (defun vector-+ (v1 v2)
-    (declare (optimize (speed 3) (space 0) (safety 0) (debug 0)))
-    (coordinate2
-     (+ (coordinate2-x v1)
-        (coordinate2-x v2))
-     (+ (coordinate2-y v1)
-        (coordinate2-y v2))
-     (+ (coordinate2-z v1)
-        (coordinate2-z v2)))))
-#+END_SRC
-
-The instantiation of the structures/functions can be achived later, with
-functions =instantiate-structure= and =instantiate-ftype=.
-
-Given the type values (vs type variables), several specialized instances of
-functions/structures are defined automatically. New instances are named as
-=<original name>{/<type>}*=, following the convention that can be seen in
-some specialized functions in sbcl.
-
-#+BEGIN_SRC lisp
-(instantiate-ftype 'vector-+ 'fixnum 'fixnum)
-
-;-->
-; Instantiating a function VECTOR-+ with typevars (FIXNUM FIXNUM)
-; (FTYPE VECTOR-+/FIXNUM/FIXNUM (/ COORDINATE2 FIXNUM FIXNUM) (/ COORDINATE2 FIXNUM FIXNUM)...)
-; Instantiating a structure COORDINATE2 with typevars (FIXNUM FIXNUM)..
-#+END_SRC
-
-The type specifier for these structures can be referenced by =(/ lifted args...)=.
-Upon the type expansion, it tries to instantiate the structure
-instance. In other words, the type information /propagates/.
-
-#+BEGIN_SRC lisp
-(deftype / (name &rest args)
-   (or (gethash (cons name args) *typevar-types*)
-       (progn
-         (apply #'instantiate-structure name args)
-         (gethash (cons name args) *typevar-types*))
-       (error "failed to expand the lifted structure type ~a with arguments ~a" name args)))
-#+END_SRC
+See [[typevar.org]] for more infomation.
 
 ** structue id-mixin
 
