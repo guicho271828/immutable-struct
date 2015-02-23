@@ -89,7 +89,7 @@
        (progn
          (apply #'instantiate-structure name args)
          (gethash (cons name args) *typevar-types*))
-       name)))
+       (error "failed to expand the lifted structure type ~a with arguments ~a" name args))))
 
 (lispn:define-namespace typevar-structure struct-info)
 (cl:defstruct (struct-info (:constructor struct-info (expander slots)))
