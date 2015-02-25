@@ -7,6 +7,7 @@
 (defpackage optima-immutable-struct
   (:use :cl :optima :alexandria)
   (:shadow :defstruct :ftype)
+  (:nicknames :ois)
   (:export
    :defstruct
    :ftype
