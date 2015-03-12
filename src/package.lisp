@@ -9,6 +9,7 @@
   (:shadow :defstruct :ftype)
   (:nicknames :ois)
   (:export
+   :*matcher*
    :defstruct
    :ftype
    :id-mixin
@@ -21,8 +22,6 @@
    :typevar-structure
    :define-with-typevar))
 (in-package :optima-immutable-struct)
-
-;; blah blah blah.
 
 (defun canonical-defstruct (name-and-options documentation slots)
   (unless (stringp documentation)
@@ -67,13 +66,17 @@
             ,@slots)
           ,(%defpattern name slots))))))
 
+(defvar *matcher* :optima)
+
 (defun %defpattern (name slots)
   (let ((slots-optional-args
          (mapcar (lambda (slot)
                    (ematch slot
                      ((list* slot _) `(,slot '_))))
-                 slots)))
-    `(defpattern ,name (&optional ,@slots-optional-args)
+                 slots))
+        (dpsym
+         (find-symbol "DEFPATTERN" (find-package *matcher*))))
+    `(,dpsym ,name (&optional ,@slots-optional-args)
        (list 'structure ',(symbolicate name '-)
              ,@(mapcar (lambda (slot)
                          (ematch (ensure-list slot)
@@ -103,6 +106,8 @@
                       ,@(canonicalize-name-or-names name-or-names))))
 
 (defmacro defun-match (name args &body body)
+  (let ((mvmatch
+         (find-symbol "MULTIPLE-VALUE-MATCH" (find-package *matcher*))))
   `(defun ,name (,@args)
-     (multiple-value-match (values ,@args)
-       ,@body)))
+       (,mvmatch (values ,@args)
+                 ,@body))))
