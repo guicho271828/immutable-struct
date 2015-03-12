@@ -4,7 +4,8 @@
 +Simple+ Library that encourage the use of functional programming +
 pattern matching.
 
-+ =defstruct= --- provides truely nondestructive structure.
++ =defstruct= --- provides truely nondestructive structure + integrates
+  well to the pattern matchers.
 + =typevar= --- naive way to define algebraic data types / fast, specialised functions
 + =ftype= --- shorthand expression of =declaim ftype=
 + =id-mixin= --- for a better hash function
