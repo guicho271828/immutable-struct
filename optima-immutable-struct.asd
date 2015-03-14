@@ -24,7 +24,6 @@
   :components ((:module "src"
                 :components
                 ((:file "package")
-                 (:file "id")
-                 (:file "typevar"))))
+                 (:file "id"))))
   :description "Library that encourage the use of functional programming + pattern matching"
   :in-order-to ((test-op (load-op optima-immutable-struct.test))))

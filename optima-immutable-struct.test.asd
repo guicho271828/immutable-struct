@@ -15,7 +15,6 @@
   :license "LLGPL"
   :depends-on (:optima-immutable-struct
                :fiveam)
-  :components ((:module "t"
-                :components
-                ((:file "package"))))
-  :perform (load-op :after (op c) (eval (read-from-string "(fiveam:run! :optima-immutable-struct)"))))
+  :components ())
+
+;; now removed

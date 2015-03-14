@@ -5,7 +5,7 @@
 
 (in-package :optima-immutable-struct)
 
-(defstruct id-mixin
+(cl:defstruct id-mixin
   "A mix-in that adds a slot named `id', which is useful for computing a hash value."
   (id (random MOST-POSITIVE-FIXNUM) :type fixnum))
 
