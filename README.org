@@ -19,10 +19,6 @@ A variation of defstruct, with read-only slots and automatically defined constru
 + Pattern matcher :: (<name> &optional <slots...>), identical form to the
      constructor.
 
-User can switch between Optima matcher and Trivia matcher by setting a
-package designator to =*matcher*=, e.g. =:optima= or =:trivia=. Defaulted
-to =:optima=.
-
 ** macro ftype (name-or-names &rest types)
 
 Abbreviation of =(declaim (ftype (function (<types...>) <type>) <name-or-names...>))=.
