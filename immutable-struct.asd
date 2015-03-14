@@ -1,5 +1,5 @@
 #|
-  This file is a part of optima-immutable-struct project.
+  This file is a part of immutable-struct project.
   Copyright (c) 2015 Masataro Asai (guicho2.71828@gmail.com)
 |#
 
@@ -10,12 +10,12 @@
 
 
 (in-package :cl-user)
-(defpackage optima-immutable-struct-asd
+(defpackage immutable-struct-asd
   (:use :cl :asdf))
-(in-package :optima-immutable-struct-asd)
+(in-package :immutable-struct-asd)
 
 
-(defsystem optima-immutable-struct
+(defsystem immutable-struct
   :version "0.1"
   :author "Masataro Asai"
   :mailto "guicho2.71828@gmail.com"
@@ -26,4 +26,4 @@
                 ((:file "package")
                  (:file "id"))))
   :description "Library that encourage the use of functional programming + pattern matching"
-  :in-order-to ((test-op (load-op optima-immutable-struct.test))))
+  :in-order-to ((test-op (load-op immutable-struct.test))))

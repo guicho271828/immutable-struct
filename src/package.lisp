@@ -1,10 +1,10 @@
 #|
-  This file is a part of optima-immutable-struct project.
+  This file is a part of immutable-struct project.
   Copyright (c) 2015 Masataro Asai (guicho2.71828@gmail.com)
 |#
 
 (in-package :cl-user)
-(defpackage optima-immutable-struct
+(defpackage immutable-struct
   (:use :cl :optima :alexandria)
   (:shadow :defstruct :ftype)
   (:nicknames :ois)
@@ -14,7 +14,7 @@
    :ftype
    :id-mixin
    :defun-match))
-(in-package :optima-immutable-struct)
+(in-package :immutable-struct)
 
 (defun canonical-defstruct (name-and-options documentation slots)
   (unless (stringp documentation)

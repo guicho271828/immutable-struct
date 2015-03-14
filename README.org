@@ -1,5 +1,5 @@
 
-* OPTIMA-IMMUTABLE-STRUCT 
+* IMMUTABLE-STRUCT 
 
 +Simple+ Library that encourage the use of functional programming +
 pattern matching.
