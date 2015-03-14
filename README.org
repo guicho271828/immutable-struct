@@ -6,7 +6,6 @@ pattern matching.
 
 + =defstruct= --- provides truely nondestructive structure + integrates
   well to the pattern matchers.
-+ =typevar= --- naive way to define algebraic data types / fast, specialised functions
 + =ftype= --- shorthand expression of =declaim ftype=
 + =id-mixin= --- for a better hash function
 
@@ -32,15 +31,6 @@ over =the= and =(declare (type ...))=.
 
 Besides, =defun= and =ftype= both have 5 characters and gives cleaner code.
 
-** Type variables
-
-Macro =define-with-typevar= defines some type variables and applies a special method to treat
-=defstruct,ftype,defun= forms inside the body.  It supports a trivial type
-propagation mechanism.  Thanks to the static typing, it results in a fast
-and efficient machine code unlike CLOS.
-
-See [[typevar.org]] for more infomation.
-
 ** structue id-mixin
 
 It has an only slot named =id= and meant to be :include-ed into the
@@ -50,9 +40,7 @@ slot on each instantiation.
 This is particularly important when using a hash table to avoid duplicated
 evaluation. The performance of the hash function affects the rate of hash
 conflict. However, SBCL yields the same sxhash value for the instances of the same
-class, and results in a bad hashing result.
-
-https://github.com/guicho271828/optima-bdd contains some usage.
+class, and results in a bad hashing result. (or use equalp hash.)
 
 ** Dependencies
 
@@ -62,32 +50,16 @@ This library is at least tested on implementation listed below:
 
 Also, it depends on the following libraries:
 
-+ optima by Tomohiro Matsuyama ::
-    Optimized Pattern Matching Library
++ Trivia by me ::
 
-+ alexandria by  ::
++ alexandria  ::
     Alexandria is a collection of portable public domain utilities.
-
-+ iterate by  ::
-    Jonathan Amsterdam's iterator/gatherer/accumulator facility
-
-
-
-** Installation
-
-
-** Author
-
-+ Masataro Asai (guicho2.71828@gmail.com)
 
 * Copyright
 
 Copyright (c) 2015 Masataro Asai (guicho2.71828@gmail.com)
 
-
 * License
 
 Licensed under the LLGPL License.
-
-
 
