@@ -5,7 +5,7 @@
 
 (in-package :cl-user)
 (defpackage immutable-struct
-  (:use :cl :optima :alexandria)
+  (:use :cl :trivia :alexandria)
   (:shadow :defstruct :ftype)
   (:nicknames :ois)
   (:export
@@ -96,5 +96,5 @@
 
 (defmacro defun-match (name args &body body)
   `(defun ,name (,@args)
-     (multiple-value-match (values ,@args)
-                           ,@body)))
+     (match* ,args
+       ,@body)))

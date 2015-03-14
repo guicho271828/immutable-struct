@@ -20,10 +20,9 @@
   :author "Masataro Asai"
   :mailto "guicho2.71828@gmail.com"
   :license "LLGPL"
-  :depends-on (:optima :alexandria :lisp-namespace :compiler-macro)
+  :depends-on (:trivia :alexandria)
   :components ((:module "src"
                 :components
                 ((:file "package")
                  (:file "id"))))
-  :description "Library that encourage the use of functional programming + pattern matching"
-  :in-order-to ((test-op (load-op immutable-struct.test))))
+  :description "Library that encourage the use of functional programming + pattern matching")
