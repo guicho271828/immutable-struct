@@ -33,7 +33,7 @@
 
 (defun append-constructor (name-and-options slots)
   (ematch name-and-options
-    ((list* _ (assoc :constructor _))
+    ((list* _ (assoc :constructor (not nil)))
      name-and-options)
     ((list* name options)
      `(,name ,@options (:constructor ,name (&optional ,@(mapcar #'car slots)))))))
