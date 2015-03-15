@@ -12,10 +12,10 @@ pattern matching.
 
 A variation of defstruct, with read-only slots and automatically defined constructor.
 
-+ Read-only, Noninterned slot name :: Standard =:read-only= feature in cl
++ Read-only, Noninterned Slot Name :: Standard =:read-only= feature in cl
      does not prohibit the use of slot-value.
-+ Constructor name, with the Same Pattern Match Syntax :: (<name> &optional
-     <slots...>). No keyword argument.
++ Constructor Function with the Same Syntax as that of Pattern Matcher :: (<name>
+     &optional <slots...>). No keyword argument.
 
 ** macro ftype (name-or-names &rest types)
 

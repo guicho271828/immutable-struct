@@ -9,11 +9,8 @@
   (:shadow :defstruct :ftype)
   (:nicknames :ois)
   (:export
-   :*matcher*
    :defstruct
-   :ftype
-   :id-mixin
-   :defun-match))
+   :ftype))
 (in-package :immutable-struct)
 
 (defun canonical-defstruct (name-and-options documentation slots)
@@ -56,24 +53,7 @@
        `(eval-when (:compile-toplevel :load-toplevel :execute)
           (cl:defstruct ,(append-constructor name-and-options slots)
             ,documentation
-            ,@slots)
-          ,(%defpattern name slots))))))
-
-(defun %defpattern (name slots)
-  (let ((slots-optional-args
-         (mapcar (lambda (slot)
-                   (ematch slot
-                     ((list* slot _) `(,slot '_))))
-                 slots)))
-    `(defpattern ,name (&optional ,@slots-optional-args)
-       (list 'structure ',(symbolicate name '-)
-             ,@(mapcar (lambda (slot)
-                         (ematch (ensure-list slot)
-                           ((list* slot _ (property :type type))
-                            ``(,',slot (and ,,slot (type ,',type))))
-                           ((list* slot _) ;; see below
-                            ``(,',slot ,,slot))))
-                       slots)))))
+            ,@slots))))))
 
 #+nil
 (defstruct rb-node
@@ -94,7 +74,3 @@
   `(declaim (cl:ftype (function ,(butlast types) ,(lastcar types))
                       ,@(canonicalize-name-or-names name-or-names))))
 
-(defmacro defun-match (name args &body body)
-  `(defun ,name (,@args)
-     (match* ,args
-       ,@body)))
