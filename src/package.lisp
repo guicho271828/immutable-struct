@@ -27,7 +27,7 @@
                          (ematch slot
                            ((list* (structure symbol (-name name)) initform options)
                             (list* (make-symbol name) initform :read-only t options))
-                           ((structure symbol (-name name))
+                           ((symbol (name name))
                             (list (make-symbol name) nil :read-only t))))
                        slots)))
     (values (ensure-list name-and-options)

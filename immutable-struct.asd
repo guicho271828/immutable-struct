@@ -23,6 +23,5 @@
   :depends-on (:trivia :alexandria)
   :components ((:module "src"
                 :components
-                ((:file "package")
-                 (:file "id"))))
+                ((:file "package"))))
   :description "Library that encourage the use of functional programming + pattern matching")

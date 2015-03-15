@@ -7,17 +7,15 @@ pattern matching.
 + =defstruct= --- provides truely nondestructive structure + integrates
   well to the pattern matchers.
 + =ftype= --- shorthand expression of =declaim ftype=
-+ =id-mixin= --- for a better hash function
 
 ** macro defstruct (name-and-options &rest slots)
 
 A variation of defstruct, with read-only slots and automatically defined constructor.
 
-+ Read-only :: using the standard cl feature.
-+ Noninterned slot name :: Restricting the use of slot-value.
-+ Constructor name :: (<name> &optional <slots...>) and has no keyword argument.
-+ Pattern matcher :: (<name> &optional <slots...>), identical form to the
-     constructor.
++ Read-only, Noninterned slot name :: Standard =:read-only= feature in cl
+     does not prohibit the use of slot-value.
++ Constructor name, with the Same Pattern Match Syntax :: (<name> &optional
+     <slots...>). No keyword argument.
 
 ** macro ftype (name-or-names &rest types)
 
@@ -26,17 +24,6 @@ In a smart implementation like sbcl, using =ftype= declaration is preferred
 over =the= and =(declare (type ...))=.
 
 Besides, =defun= and =ftype= both have 5 characters and gives cleaner code.
-
-** structue id-mixin
-
-It has an only slot named =id= and meant to be :include-ed into the
-structure. It has a fixnum value, and a random value is assigned to this
-slot on each instantiation.
-
-This is particularly important when using a hash table to avoid duplicated
-evaluation. The performance of the hash function affects the rate of hash
-conflict. However, SBCL yields the same sxhash value for the instances of the same
-class, and results in a bad hashing result. (or use equalp hash.)
 
 ** Dependencies
 
