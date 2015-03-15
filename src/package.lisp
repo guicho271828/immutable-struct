@@ -4,7 +4,7 @@
 |#
 
 (in-package :cl-user)
-(defpackage immutable-struct
+(defpackage :immutable-struct
   (:use :cl :trivia :alexandria)
   (:shadow :defstruct :ftype)
   (:nicknames :ois)
