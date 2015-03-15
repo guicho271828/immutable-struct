@@ -5,7 +5,7 @@ Simple library that encourage the use of functional programming +
 pattern matching.
 
 + =defstruct= --- provides truely nondestructive structure + integrates
-  well to the pattern matchers.
+  well to the pattern matchers (either optima or trivia).
 + =ftype= --- shorthand expression of =declaim ftype=
 
 ** macro defstruct (name-and-options &rest slots)
