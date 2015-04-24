@@ -5,7 +5,7 @@
 
 (in-package :cl-user)
 (defpackage :immutable-struct
-  (:use :cl :trivia :alexandria)
+  (:use :cl :trivia :trivia.skip :alexandria)
   (:shadow :defstruct :ftype)
   (:nicknames :ois)
   (:export
@@ -35,8 +35,18 @@
   (ematch name-and-options
     ((list* _ (assoc :constructor (not nil)))
      name-and-options)
+    ((list* _ (assoc :include (list included)))
+     (let ((included-slot-names
+            (mapcar #'ensure-list
+                    (mapcar #'c2mop:slot-definition-name 
+                            (c2mop:class-slots (find-class included))))))
+       (if-let ((d (set-difference included-slot-names slots :key #'first)))
+         (append-constructor name-and-options (append d slots))
+         (skip))))
     ((list* name options)
-     `(,name ,@options (:constructor ,name (&optional ,@(mapcar #'car slots)))))))
+     `(,name
+       ,@options
+       (:constructor ,name (&optional ,@(mapcar #'car slots)))))))
 
 (defmacro defstruct (name-and-options &optional documentation &rest slots)
   "A variation of defstruct, with read-only slots and automatically defined constructor.
@@ -48,12 +58,10 @@
 "
   (multiple-value-bind (name-and-options documentation slots)
       (canonical-defstruct name-and-options documentation slots)
-    (ematch name-and-options
-      ((list* name _)
-       `(eval-when (:compile-toplevel :load-toplevel :execute)
-          (cl:defstruct ,(append-constructor name-and-options slots)
-            ,documentation
-            ,@slots))))))
+    `(eval-when (:compile-toplevel :load-toplevel :execute)
+       (cl:defstruct ,(append-constructor name-and-options slots)
+         ,documentation
+         ,@slots))))
 
 #+nil
 (defstruct rb-node
