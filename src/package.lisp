@@ -40,7 +40,8 @@
             (mapcar #'ensure-list
                     (mapcar #'c2mop:slot-definition-name 
                             (c2mop:class-slots (find-class included))))))
-       (if-let ((d (set-difference included-slot-names slots :key #'first)))
+       (if-let ((d (set-difference included-slot-names slots :key #'first
+                                   :test #'string=)))
          (append-constructor name-and-options (append d slots))
          (skip))))
     ((list* name options)
