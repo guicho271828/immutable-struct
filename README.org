@@ -25,6 +25,9 @@ over =the= and =(declare (type ...))=.
 
 Besides, =defun= and =ftype= both have 5 characters and gives cleaner code.
 
+: (ftype my+ fixnum fixnum fixnum)
+: (defun my+ (a b) (+ a b))
+
 ** Dependencies
 
 This library is at least tested on implementation listed below:
