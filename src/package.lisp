@@ -47,6 +47,7 @@
     ((list* name options)
      `(,name
        ,@options
+       (:constructor ,(symbolicate 'make- name) (&key ,@(mapcar #'car slots)))
        (:constructor ,name (&optional ,@(mapcar #'car slots)))))))
 
 (defmacro defstruct (name-and-options &optional documentation &rest slots)
