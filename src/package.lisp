@@ -22,7 +22,7 @@
                      nil)))
   (let ((slots (mapcar (lambda (slot)
                          (ematch slot
-                           ((list* (structure symbol (-name name)) initform options)
+                           ((list* (symbol (name name)) initform options)
                             (list* (make-symbol name) initform :read-only t options))
                            ((symbol (name name))
                             (list (make-symbol name) nil :read-only t))))
